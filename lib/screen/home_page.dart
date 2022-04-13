@@ -10,21 +10,22 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  CameraController? controller;
   CameraImage? imgCamera;
-  CameraController cameraController =
-      CameraController(cameras![0], ResolutionPreset.medium);
+  bool isworking = false;
 
-  bool isWorking = false;
-  String result = '';
-
-  initCamera() {
-    cameraController.initialize().then((value) {
-      if (!mounted) return;
-
+  @override
+  void initState() {
+    super.initState();
+    controller = CameraController(cameras![0], ResolutionPreset.max);
+    controller!.initialize().then((img) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
-        cameraController.startImageStream((image) {
-          if (!isWorking) {
-            isWorking = true;
+        controller!.startImageStream((image) {
+          if (!isworking) {
+            isworking = true;
             imgCamera = image;
           }
         });
@@ -33,14 +34,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    initCamera();
-  }
-
-  @override
   void dispose() {
-    cameraController.dispose();
+    controller!.dispose();
     super.dispose();
   }
 
@@ -59,14 +54,9 @@ class _HomePageState extends State<HomePage> {
               "Facemask Detector",
               style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
             ),
-            (cameraController.value.isInitialized)
-                ? const Center(
-                    child: Icon(Icons.camera_alt_rounded),
-                  )
-                : AspectRatio(
-                    aspectRatio: cameraController.value.aspectRatio,
-                    child: CameraPreview(cameraController),
-                  )
+            (!controller!.value.isInitialized)
+                ? Container()
+                : CameraPreview(controller!),
           ],
         ),
       ),
