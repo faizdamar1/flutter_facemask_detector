@@ -2,5 +2,4 @@
 
 Project using tflite
 
-## Download dataset
 

@@ -1,6 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:facemask_detector/main.dart';
 import 'package:flutter/material.dart';
+import 'package:tflite/tflite.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -14,9 +15,38 @@ class _HomePageState extends State<HomePage> {
   CameraImage? imgCamera;
   bool isworking = false;
 
-  @override
-  void initState() {
-    super.initState();
+  String result = '';
+
+  runModelOnFrame() async {
+    if (imgCamera != null) {
+      var recognition = await Tflite.runModelOnFrame(
+        bytesList: imgCamera!.planes.map((e) {
+          return e.bytes;
+        }).toList(),
+        imageHeight: imgCamera!.height,
+        imageWidth: imgCamera!.width,
+        imageMean: 127.5,
+        imageStd: 127.5,
+        numResults: 1,
+        threshold: 0.1,
+        asynch: true,
+      );
+
+      result = '';
+
+      recognition?.forEach((element) {
+        result += element["label"] + "\n";
+      });
+
+      setState(() {
+        result;
+      });
+
+      isworking = false;
+    }
+  }
+
+  initCamera() {
     controller = CameraController(cameras![0], ResolutionPreset.max);
     controller!.initialize().then((img) {
       if (!mounted) {
@@ -27,10 +57,23 @@ class _HomePageState extends State<HomePage> {
           if (!isworking) {
             isworking = true;
             imgCamera = image;
+            runModelOnFrame();
           }
         });
       });
     });
+  }
+
+  initModel() async {
+    await Tflite.loadModel(
+        model: "assets/model.tflite", labels: "assets/labels.txt");
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initModel();
+    initCamera();
   }
 
   @override
@@ -50,9 +93,9 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 50),
             const Text("Faiz Project"),
             const SizedBox(height: 5),
-            const Text(
-              "Facemask Detector",
-              style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+            Text(
+              "Facemask Detector $result",
+              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
             ),
             (!controller!.value.isInitialized)
                 ? Container()
